@@ -15,6 +15,24 @@
           Turn sample Microsoft security alerts into a structured incident story with
           risk, containment, and next-step guidance.
         </p>
+        <section class="summary-strip" aria-label="Queue summary">
+          <article class="summary-card">
+            <span class="summary-label">Queued Alerts</span>
+            <strong id="summary-total">0</strong>
+          </article>
+          <article class="summary-card">
+            <span class="summary-label">In Progress</span>
+            <strong id="summary-in-progress">0</strong>
+          </article>
+          <article class="summary-card">
+            <span class="summary-label">Escalated</span>
+            <strong id="summary-escalated">0</strong>
+          </article>
+          <article class="summary-card">
+            <span class="summary-label">Assigned</span>
+            <strong id="summary-owned">0</strong>
+          </article>
+        </section>
       </section>
 
       <section class="layout">
@@ -58,6 +76,49 @@
               <div class="signal-card">
                 <span class="signal-label">Tactics</span>
                 <strong id="signal-tactics"></strong>
+              </div>
+            </section>
+
+            <section class="workflow-grid">
+              <div class="workflow-card">
+                <div class="section-header">
+                  <div>
+                    <p class="panel-label">Disposition</p>
+                    <h3>Case workflow</h3>
+                  </div>
+                  <span id="case-last-updated" class="queue-count"></span>
+                </div>
+                <div class="workflow-fields">
+                  <label>
+                    Case Status
+                    <select id="case-status">
+                      <option value="new">New</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="escalated">Escalated</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </label>
+                  <label>
+                    Assigned Analyst
+                    <input id="case-owner" type="text" placeholder="Analyst owner">
+                  </label>
+                </div>
+                <label>
+                  Decision Notes
+                  <textarea id="case-notes" rows="5" placeholder="Capture why the incident is still open or what was validated."></textarea>
+                </label>
+                <button id="save-case" class="primary-button" type="button">Save Case Update</button>
+                <p id="save-state" class="save-state"></p>
+              </div>
+
+              <div class="workflow-card">
+                <div class="section-header">
+                  <div>
+                    <p class="panel-label">History</p>
+                    <h3>Case timeline</h3>
+                  </div>
+                </div>
+                <ol id="case-timeline" class="timeline"></ol>
               </div>
             </section>
 
@@ -108,6 +169,17 @@
       const signalTactics = document.getElementById("signal-tactics");
       const exportMarkdown = document.getElementById("export-markdown");
       const exportJson = document.getElementById("export-json");
+      const summaryTotal = document.getElementById("summary-total");
+      const summaryInProgress = document.getElementById("summary-in-progress");
+      const summaryEscalated = document.getElementById("summary-escalated");
+      const summaryOwned = document.getElementById("summary-owned");
+      const caseStatus = document.getElementById("case-status");
+      const caseOwner = document.getElementById("case-owner");
+      const caseNotes = document.getElementById("case-notes");
+      const saveCase = document.getElementById("save-case");
+      const saveState = document.getElementById("save-state");
+      const caseTimeline = document.getElementById("case-timeline");
+      const caseLastUpdated = document.getElementById("case-last-updated");
 
       let alerts = [];
       let activeAlertId = null;
@@ -125,6 +197,30 @@
         return severity.toLowerCase();
       }
 
+      function formatStatus(status) {
+        return status.replaceAll("_", " ");
+      }
+
+      function formatTimestamp(timestamp) {
+        const parsed = new Date(timestamp);
+        if (Number.isNaN(parsed.getTime())) {
+          return timestamp;
+        }
+        return new Intl.DateTimeFormat("en", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        }).format(parsed);
+      }
+
+      function renderSummary(summary) {
+        summaryTotal.textContent = summary.total;
+        summaryInProgress.textContent = summary.in_progress;
+        summaryEscalated.textContent = summary.escalated;
+        summaryOwned.textContent = summary.owned;
+      }
+
       function renderAlertCards() {
         alertCards.innerHTML = "";
         queueCount.textContent = `${alerts.length} alerts`;
@@ -137,15 +233,44 @@
             <span class="severity ${severityClassName(alert.severity)}">${alert.severity}</span>
             <strong>${alert.title}</strong>
             <span>${alert.category}</span>
-            <span>${alert.affected_identity}</span>
+            <div class="alert-meta">
+              <span>${alert.affected_identity}</span>
+              <span class="case-status ${alert.case.status}">${formatStatus(alert.case.status)}</span>
+            </div>
+            <span>${alert.case.owner} · ${formatTimestamp(alert.case.last_updated)}</span>
           `;
           button.addEventListener("click", () => {
             activeAlertId = alert.id;
+            saveState.textContent = "";
             renderAlertCards();
             generateReport(alert.id);
           });
           alertCards.appendChild(button);
         }
+      }
+
+      function renderTimeline(history) {
+        caseTimeline.innerHTML = "";
+        for (const item of [...history].reverse()) {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <div class="timeline-topline">
+              <strong>${item.action}</strong>
+              <span class="case-status ${item.status}">${formatStatus(item.status)}</span>
+            </div>
+            <span class="timeline-meta">${item.actor} · ${formatTimestamp(item.timestamp)}</span>
+            <p>${item.detail}</p>
+          `;
+          caseTimeline.appendChild(li);
+        }
+      }
+
+      function renderCase(caseRecord) {
+        caseStatus.value = caseRecord.status;
+        caseOwner.value = caseRecord.owner === "Unassigned" ? "" : caseRecord.owner;
+        caseNotes.value = caseRecord.decision_notes;
+        caseLastUpdated.textContent = `Last updated ${formatTimestamp(caseRecord.last_updated)}`;
+        renderTimeline(caseRecord.history);
       }
 
       function renderEvidence(evidence) {
@@ -167,6 +292,7 @@
         const response = await fetch("/api/alerts");
         const payload = await response.json();
         alerts = payload.alerts;
+        renderSummary(payload.summary);
         activeAlertId = alerts[0]?.id ?? null;
         renderAlertCards();
         if (activeAlertId) {
@@ -183,6 +309,7 @@
         const payload = await response.json();
         const report = payload.report;
         const alert = payload.alert;
+        const caseRecord = payload.case;
 
         reportEmpty.hidden = true;
         reportRoot.hidden = false;
@@ -198,10 +325,43 @@
         renderList(recommendedActions, report.recommended_actions);
         renderList(containmentSteps, report.containment_steps);
         suggestedKql.textContent = report.suggested_kql.join("\n");
+        renderCase(caseRecord);
+      }
+
+      async function saveCaseUpdate() {
+        if (!activeAlertId) return;
+        saveCase.disabled = true;
+        saveState.textContent = "Saving case update...";
+
+        const response = await fetch("/api/case", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: activeAlertId,
+            status: caseStatus.value,
+            owner: caseOwner.value,
+            decision_notes: caseNotes.value,
+            actor: caseOwner.value || "Demo Analyst"
+          })
+        });
+        const payload = await response.json();
+        const nextCase = payload.case;
+
+        alerts = alerts.map((alert) => {
+          if (alert.id !== activeAlertId) return alert;
+          return { ...alert, case: nextCase };
+        });
+
+        renderSummary(payload.summary);
+        renderAlertCards();
+        renderCase(nextCase);
+        saveState.textContent = "Case update saved to the local incident history.";
+        saveCase.disabled = false;
       }
 
       exportMarkdown.addEventListener("click", () => exportCurrent("markdown"));
       exportJson.addEventListener("click", () => exportCurrent("json"));
+      saveCase.addEventListener("click", saveCaseUpdate);
 
       loadAlerts();
     </script>

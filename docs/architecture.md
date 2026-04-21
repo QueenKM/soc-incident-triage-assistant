@@ -29,6 +29,7 @@ This keeps the first version:
    - containment steps
    - suggested KQL
 4. The browser renders a readable incident brief.
+5. Analysts can update case status, owner, and decision notes in a persisted local history.
 
 ## Planned Expansion
 

@@ -22,6 +22,8 @@ This starter focuses on:
 - generating a deterministic triage summary
 - surfacing containment actions and investigation next steps
 - giving analysts a lightweight browser UI for demos
+- tracking analyst disposition, ownership, and case notes
+- preserving a local case timeline for handoff-ready exports
 
 ## Current Starter Scope
 
@@ -29,6 +31,7 @@ This starter focuses on:
 - Sample alerts inspired by Microsoft security workflows
 - Deterministic triage engine for repeatable demos
 - Actionable recommendations, containment steps, and KQL suggestions
+- Analyst workflow with queue summary cards, status tracking, and notes
 - Markdown and JSON incident brief export
 - Unit tests for core triage logic
 
@@ -49,18 +52,20 @@ http://127.0.0.1:8090
 
 - `app/server.py` local web server and JSON endpoints
 - `app/models.py` alert and triage report data structures
+- `app/case_store.py` persisted analyst workflow and queue summary
 - `app/triage_engine.py` deterministic triage logic
 - `data/sample_alerts.json` demo input alerts
+- `data/case_history.json` seeded case ownership and timeline data
 - `web/index.html` and `web/styles.css` lightweight UI
 - `docs/architecture.md` architecture and roadmap
 - `tests/test_triage_engine.py` unit tests
 
 ## Next Milestones
 
-1. Add Azure Sentinel / Defender export adapters
-2. Add analyst feedback loop and case disposition tracking
-3. Add LLM-backed narrative mode with grounded evidence prompts
-4. Add watchlist enrichment and entity timeline view
+1. Add live import adapters for Microsoft Sentinel and Defender XDR exports
+2. Add grounded LLM narrative mode with evidence-linked citations
+3. Add watchlist enrichment and entity relationship view
+4. Add PDF handoff export and analyst feedback scoring
 
 ## License
 

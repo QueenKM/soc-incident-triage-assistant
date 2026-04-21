@@ -1,0 +1,66 @@
+{
+  "cases": [
+    {
+      "alert_id": "alert-001",
+      "status": "in_progress",
+      "owner": "Kristina Mateva",
+      "decision_notes": "Validated unmanaged browser activity and fresh token issuance. Waiting for user verification before password reset.",
+      "last_updated": "2026-04-20T09:22:00Z",
+      "history": [
+        {
+          "timestamp": "2026-04-20T09:10:00Z",
+          "actor": "System",
+          "action": "Alert queued",
+          "detail": "Impossible travel signal was added to the analyst queue.",
+          "status": "new"
+        },
+        {
+          "timestamp": "2026-04-20T09:18:00Z",
+          "actor": "Kristina Mateva",
+          "action": "Case updated",
+          "detail": "Status changed to in progress; Owner changed to Kristina Mateva; Analyst notes updated",
+          "status": "in_progress"
+        }
+      ]
+    },
+    {
+      "alert_id": "alert-002",
+      "status": "new",
+      "owner": "Unassigned",
+      "decision_notes": "Waiting for Exchange audit review and mailbox delegate validation.",
+      "last_updated": "2026-04-20T08:55:00Z",
+      "history": [
+        {
+          "timestamp": "2026-04-20T08:55:00Z",
+          "actor": "System",
+          "action": "Alert queued",
+          "detail": "Inbox rule persistence case was queued for analyst validation.",
+          "status": "new"
+        }
+      ]
+    },
+    {
+      "alert_id": "alert-003",
+      "status": "escalated",
+      "owner": "IR Lead",
+      "decision_notes": "High-privilege consent grant requires tenant-wide app review and conditional access validation.",
+      "last_updated": "2026-04-20T09:34:00Z",
+      "history": [
+        {
+          "timestamp": "2026-04-20T09:02:00Z",
+          "actor": "System",
+          "action": "Alert queued",
+          "detail": "OAuth app consent alert was added to the queue.",
+          "status": "new"
+        },
+        {
+          "timestamp": "2026-04-20T09:12:00Z",
+          "actor": "Identity Analyst",
+          "action": "Case updated",
+          "detail": "Status changed to escalated; Owner changed to IR Lead; Analyst notes updated",
+          "status": "escalated"
+        }
+      ]
+    }
+  ]
+}

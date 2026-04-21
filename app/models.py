@@ -57,3 +57,51 @@ class TriageReport:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass
+class CaseTimelineEvent:
+    timestamp: str
+    actor: str
+    action: str
+    detail: str
+    status: str
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "CaseTimelineEvent":
+        return cls(
+            timestamp=payload["timestamp"],
+            actor=payload["actor"],
+            action=payload["action"],
+            detail=payload["detail"],
+            status=payload["status"],
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class CaseRecord:
+    alert_id: str
+    status: str
+    owner: str
+    decision_notes: str
+    last_updated: str
+    history: list[CaseTimelineEvent] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "CaseRecord":
+        return cls(
+            alert_id=payload["alert_id"],
+            status=payload["status"],
+            owner=payload["owner"],
+            decision_notes=payload["decision_notes"],
+            last_updated=payload["last_updated"],
+            history=[CaseTimelineEvent.from_dict(item) for item in payload.get("history", [])],
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["history"] = [item.to_dict() for item in self.history]
+        return payload
