@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SOC Incident Triage Assistant</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <p class="eyebrow">SOC Incident Triage Assistant</p>
+        <h1>Fast alert triage for security operations demos</h1>
+        <p class="lede">
+          Turn sample Microsoft security alerts into a structured incident story with
+          risk, containment, and next-step guidance.
+        </p>
+      </section>
+
+      <section class="layout">
+        <article class="panel queue-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-label">Analyst Queue</p>
+              <h2>Sample alerts</h2>
+            </div>
+            <p id="queue-count" class="queue-count"></p>
+          </div>
+          <div id="alert-cards" class="alert-cards"></div>
+        </article>
+
+        <article class="panel report">
+          <div id="report-empty">
+            Pick an alert and generate a triage report to see the starter workflow.
+          </div>
+          <div id="report-root" hidden>
+            <div class="report-hero">
+              <div>
+                <p id="risk-pill" class="pill"></p>
+                <h2 id="report-title"></h2>
+              </div>
+              <div class="report-actions">
+                <button id="export-markdown" class="ghost-button" type="button">Export Markdown</button>
+                <button id="export-json" class="ghost-button" type="button">Export JSON</button>
+              </div>
+            </div>
+            <p id="report-summary" class="summary"></p>
+
+            <section class="signal-strip">
+              <div class="signal-card">
+                <span class="signal-label">Identity</span>
+                <strong id="signal-identity"></strong>
+              </div>
+              <div class="signal-card">
+                <span class="signal-label">Asset</span>
+                <strong id="signal-asset"></strong>
+              </div>
+              <div class="signal-card">
+                <span class="signal-label">Tactics</span>
+                <strong id="signal-tactics"></strong>
+              </div>
+            </section>
+
+            <section>
+              <h3>Evidence</h3>
+              <div id="evidence-chips" class="evidence-chips"></div>
+            </section>
+
+            <section>
+              <h3>Attack Story</h3>
+              <ul id="attack-story"></ul>
+            </section>
+
+            <section>
+              <h3>Recommended Actions</h3>
+              <ul id="recommended-actions"></ul>
+            </section>
+
+            <section>
+              <h3>Containment Steps</h3>
+              <ul id="containment-steps"></ul>
+            </section>
+
+            <section>
+              <h3>Suggested KQL</h3>
+              <pre id="suggested-kql"></pre>
+            </section>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const queueCount = document.getElementById("queue-count");
+      const alertCards = document.getElementById("alert-cards");
+      const reportEmpty = document.getElementById("report-empty");
+      const reportRoot = document.getElementById("report-root");
+      const riskPill = document.getElementById("risk-pill");
+      const reportTitle = document.getElementById("report-title");
+      const reportSummary = document.getElementById("report-summary");
+      const attackStory = document.getElementById("attack-story");
+      const recommendedActions = document.getElementById("recommended-actions");
+      const containmentSteps = document.getElementById("containment-steps");
+      const suggestedKql = document.getElementById("suggested-kql");
+      const evidenceChips = document.getElementById("evidence-chips");
+      const signalIdentity = document.getElementById("signal-identity");
+      const signalAsset = document.getElementById("signal-asset");
+      const signalTactics = document.getElementById("signal-tactics");
+      const exportMarkdown = document.getElementById("export-markdown");
+      const exportJson = document.getElementById("export-json");
+
+      let alerts = [];
+      let activeAlertId = null;
+
+      function renderList(target, items) {
+        target.innerHTML = "";
+        for (const item of items) {
+          const li = document.createElement("li");
+          li.textContent = item;
+          target.appendChild(li);
+        }
+      }
+
+      function severityClassName(severity) {
+        return severity.toLowerCase();
+      }
+
+      function renderAlertCards() {
+        alertCards.innerHTML = "";
+        queueCount.textContent = `${alerts.length} alerts`;
+
+        for (const alert of alerts) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `alert-card ${activeAlertId === alert.id ? "active" : ""}`;
+          button.innerHTML = `
+            <span class="severity ${severityClassName(alert.severity)}">${alert.severity}</span>
+            <strong>${alert.title}</strong>
+            <span>${alert.category}</span>
+            <span>${alert.affected_identity}</span>
+          `;
+          button.addEventListener("click", () => {
+            activeAlertId = alert.id;
+            renderAlertCards();
+            generateReport(alert.id);
+          });
+          alertCards.appendChild(button);
+        }
+      }
+
+      function renderEvidence(evidence) {
+        evidenceChips.innerHTML = "";
+        for (const item of evidence) {
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.textContent = item;
+          evidenceChips.appendChild(chip);
+        }
+      }
+
+      function exportCurrent(format) {
+        if (!activeAlertId) return;
+        window.open(`/api/export?id=${encodeURIComponent(activeAlertId)}&format=${format}`, "_blank");
+      }
+
+      async function loadAlerts() {
+        const response = await fetch("/api/alerts");
+        const payload = await response.json();
+        alerts = payload.alerts;
+        activeAlertId = alerts[0]?.id ?? null;
+        renderAlertCards();
+        if (activeAlertId) {
+          generateReport(activeAlertId);
+        }
+      }
+
+      async function generateReport(alertId) {
+        const response = await fetch("/api/triage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: alertId })
+        });
+        const payload = await response.json();
+        const report = payload.report;
+        const alert = payload.alert;
+
+        reportEmpty.hidden = true;
+        reportRoot.hidden = false;
+        riskPill.textContent = `${report.risk_level.toUpperCase()} · confidence ${report.confidence}`;
+        riskPill.className = `pill ${report.risk_level}`;
+        reportTitle.textContent = alert.title;
+        reportSummary.textContent = report.executive_summary;
+        signalIdentity.textContent = alert.affected_identity;
+        signalAsset.textContent = alert.affected_asset;
+        signalTactics.textContent = alert.tactics.join(", ");
+        renderEvidence(alert.evidence);
+        renderList(attackStory, report.attack_story);
+        renderList(recommendedActions, report.recommended_actions);
+        renderList(containmentSteps, report.containment_steps);
+        suggestedKql.textContent = report.suggested_kql.join("\n");
+      }
+
+      exportMarkdown.addEventListener("click", () => exportCurrent("markdown"));
+      exportJson.addEventListener("click", () => exportCurrent("json"));
+
+      loadAlerts();
+    </script>
+  </body>
+</html>

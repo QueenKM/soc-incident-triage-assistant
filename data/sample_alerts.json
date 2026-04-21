@@ -1,0 +1,50 @@
+[
+  {
+    "id": "alert-001",
+    "title": "Impossible travel sign-in detected",
+    "severity": "High",
+    "provider": "Microsoft Defender XDR",
+    "category": "Impossible Travel",
+    "tactics": ["Initial Access", "Credential Access"],
+    "affected_identity": "amanda.chen@astera.edu",
+    "affected_asset": "Windows-ENTRA-07",
+    "summary": "Two sign-ins were observed from Bulgaria and Canada within 14 minutes.",
+    "event_count": 6,
+    "source_ip": "185.84.22.17",
+    "location": "Sofia, Bulgaria",
+    "evidence": ["TOR exit node match", "Unmanaged browser sign-in", "Fresh refresh token issued"],
+    "tags": ["identity", "external-ip"]
+  },
+  {
+    "id": "alert-002",
+    "title": "Suspicious inbox rule created",
+    "severity": "Medium",
+    "provider": "Microsoft Sentinel",
+    "category": "Inbox Rule Persistence",
+    "tactics": ["Persistence", "Defense Evasion"],
+    "affected_identity": "finance.ops@astera.edu",
+    "affected_asset": "Exchange Online",
+    "summary": "Mailbox forwarding rule hides messages with invoice-related subjects.",
+    "event_count": 4,
+    "source_ip": "40.92.74.11",
+    "location": "Microsoft 365",
+    "evidence": ["Delete-and-forward rule", "Mailbox login after password spray alert"],
+    "tags": ["identity", "email"]
+  },
+  {
+    "id": "alert-003",
+    "title": "Risky OAuth app consent granted",
+    "severity": "Critical",
+    "provider": "Microsoft Entra ID",
+    "category": "OAuth App Consent Abuse",
+    "tactics": ["Privilege Escalation", "Persistence", "Exfiltration"],
+    "affected_identity": "globaladmin@astera.edu",
+    "affected_asset": "Entra ID Tenant",
+    "summary": "A high-privilege app received delegated Graph permissions with admin consent.",
+    "event_count": 8,
+    "source_ip": "91.196.12.4",
+    "location": "External",
+    "evidence": ["Mail.Read granted", "Files.Read.All granted", "Consent from unfamiliar publisher"],
+    "tags": ["identity", "external-ip", "cloud-app"]
+  }
+]
